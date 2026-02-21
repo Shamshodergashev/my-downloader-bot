@@ -7,7 +7,8 @@ import time
 import re
 import shutil
 import requests
-from concurrent.futures import ThreadPoolExecutor
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import instaloader
 from aiogram import Bot, Dispatcher, types, F
@@ -520,16 +521,29 @@ async def start_dl(callback: types.CallbackQuery):
 
 # ══════════════════════════════════════════
 #  ISHGA TUSHURISH
-# ══════════════════════════════════════════
+# --- RENDER HEALTH CHECK ---
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+        self.wfile.write(b"Bot is running!")
+    def log_message(self, format, *args):
+        return
+
+def run_health_check():
+    port = int(os.environ.get("PORT", 10000))
+    HTTPServer(('0.0.0.0', port), HealthCheckHandler).serve_forever()
+
+# --- MAIN ---
 async def main():
     logger.info("🤖 Bot ishga tushdi!")
+    threading.Thread(target=run_health_check, daemon=True).start()
     try:
         await dp.start_polling(bot)
     finally:
-        executor.shutdown(wait=False)
         db.close()
-        logger.info("🛑 Bot to'xtatildi.")
-
 
 if __name__ == "__main__":
     asyncio.run(main())
+
