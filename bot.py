@@ -18,7 +18,8 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.utils.media_group import MediaGroupBuilder
 from dotenv import load_dotenv
 from yt_dlp import YoutubeDL
-
+import static_ffmpeg
+static_ffmpeg.add_paths()
 # ══════════════════════════════════════════
 #  SOZLAMALAR (.env dan yuklash)
 # ══════════════════════════════════════════
@@ -238,3 +239,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
