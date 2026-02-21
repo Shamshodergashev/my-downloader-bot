@@ -56,7 +56,7 @@ def get_main_menu():
 async def start(m):
     cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (m.from_user.id,))
     db.commit()
-    await m.answer(f"Salom {m.from_user.full_name}! 👋 Link yuboring!")
+    await m.answer(f"Salom {m.from_user.full_name}! 👋 Link yuboring!", reply_markup=get_main_menu())
 
 @dp.message(F.text.contains("http"))
 async def handle_link(m):
@@ -117,7 +117,7 @@ async def dl(c):
         err = str(e).lower()
         if "confirm you're not a bot" in err or "login required" in err:
             await c.message.answer("⚠️ Bu video uchun `cookies.txt` kerak. YouTube/Instagram bizning IP-ni bloklagan.")
-        else: await c.message.answer(f"❌ Xatolik: {str(e)[:50]}...")
+        else: await c.message.answer(f"❌ Xatolik!")
         await status.delete()
     finally:
         if path and os.path.exists(path): os.remove(path)
