@@ -19,7 +19,12 @@ from aiogram.utils.media_group import MediaGroupBuilder
 from dotenv import load_dotenv
 from yt_dlp import YoutubeDL
 import static_ffmpeg
+
+# ══════════════════════════════════════════
+#  FFMPEG SOZLAMALARI (Render uchun)
+# ══════════════════════════════════════════
 static_ffmpeg.add_paths()
+
 # ══════════════════════════════════════════
 #  SOZLAMALAR (.env dan yuklash)
 # ══════════════════════════════════════════
@@ -58,7 +63,9 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
 
 def run_health_check():
     port = int(os.environ.get("PORT", 10000))
-    HTTPServer(('0.0.0.0', port), HealthCheckHandler).serve_forever()
+    try:
+        HTTPServer(('0.0.0.0', port), HealthCheckHandler).serve_forever()
+    except: pass
 
 # --- COOLDOWN ---
 COOLDOWN_SECONDS = 5
@@ -176,8 +183,7 @@ async def handle_insta(message: types.Message):
         else:
             status = await message.answer("📸 Yuklanmoqda...")
             await asyncio.get_running_loop().run_in_executor(executor, L.download_post, post, "temp_insta")
-            # (Rasm yuborish logikasi qisqartirildi tezroq chiqishi uchun)
-            await status.edit_text("Instagram rasm yuklandi! (Barcha rasmlar temp papkada)")
+            await status.edit_text("Instagram rasm yuklandi!")
     except:
         user_links[message.from_user.id] = message.text
         await message.answer("Nima yuklamoqchisiz?", reply_markup=get_main_menu())
@@ -220,11 +226,11 @@ async def start_dl(callback: types.CallbackQuery):
             if 'mp3' in mode or 'music' in mode: await callback.message.answer_audio(input_f, caption=cap, title=track, performer=artist)
             else: await callback.message.answer_video(input_f, caption=cap)
             await status.delete()
-        else: raise Exception("Fayl yuklanmadi")
+        else: raise Exception("Fayl topilmadi")
     except Exception as e:
         if "confirm you're not a bot" in str(e):
             await callback.message.answer("⚠️ YouTube hozircha botlarni bloklamoqda.\nInstagram yoki TikTok link yuboring!")
-        else: await callback.message.answer("❌ Xatolik!")
+        else: await callback.message.answer(f"❌ Xatolik!")
         await status.delete()
     finally: safe_remove(path)
 
@@ -239,4 +245,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
