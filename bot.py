@@ -43,22 +43,15 @@ db = sqlite3.connect("users.db")
 cursor = db.cursor()
 cursor.execute("CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY)")
 db.commit()
-L = instaloader.Instaloader(download_video_thumbnails=False, save_metadata=False, download_comments=False)
 
-def download_media(url, mode):
-    file_name = f'res_{mode}_{int(time.time())}'
-    opts = {'outtmpl':f'{file_name}.%(ext)s','quiet':True,'no_warnings':True,'merge_output_format':'mp4'}
-    if 'mp3' in mode or 'music' in mode:
-        opts.update({'format':'bestaudio/best','postprocessors':[{'key':'FFmpegExtractAudio','preferredcodec':'mp3','preferredquality':'192'}]})
-    elif mode == '720p': opts['format'] = 'bestvideo[height<=720]+bestaudio/best/best'
-    else: opts['format'] = 'bestvideo[height<=480]+bestaudio/best/best'
-    with YoutubeDL(opts) as ydl:
-        info = ydl.extract_info(url, download=True)
-        p = ydl.prepare_filename(info)
-        if ('mp3' in mode or 'music' in mode) and not p.endswith('.mp3'): p = os.path.splitext(p)[0] + '.mp3'
-        return p, info.get('artist','Noma\'lum'), info.get('title','video')
+# --- INTERFACE ---
+def get_main_menu():
+    builder = InlineKeyboardBuilder()
+    builder.row(types.InlineKeyboardButton(text="🎥 Video", callback_data="btn_video"), 
+                types.InlineKeyboardButton(text="🎵 MP3", callback_data="btn_audio_choice"))
+    builder.row(types.InlineKeyboardButton(text="👨‍💻 Admin", url=ADMIN_URL))
+    return builder.as_markup()
 
-# --- HANDLERS ---
 @dp.message(CommandStart())
 async def start(m):
     cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (m.from_user.id,))
@@ -68,9 +61,41 @@ async def start(m):
 @dp.message(F.text.contains("http"))
 async def handle_link(m):
     user_links[m.from_user.id] = m.text.strip()
+    await m.answer("Nima yuklamoqchisiz?", reply_markup=get_main_menu())
+
+@dp.callback_query(F.data == "btn_audio_choice")
+async def audio_choice(c):
     builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(text="🎥 Video", callback_data="dl_480p"), types.InlineKeyboardButton(text="🎵 MP3", callback_data="dl_convert_mp3"))
-    await m.answer("Nima yuklamoqchisiz?", reply_markup=builder.as_markup())
+    builder.row(types.InlineKeyboardButton(text="✂️ MP3 ga o'girish", callback_data="dl_convert_mp3"), 
+                types.InlineKeyboardButton(text="🔍 Musiqani topish", callback_data="dl_original_music"))
+    builder.row(types.InlineKeyboardButton(text="👨‍💻 Admin", url=ADMIN_URL),
+                types.InlineKeyboardButton(text="⬅️ Orqaga", callback_data="back_to_main"))
+    await c.message.edit_text("MP3 yuklash turi:", reply_markup=builder.as_markup())
+
+@dp.callback_query(F.data == "btn_video")
+async def video_choice(c):
+    builder = InlineKeyboardBuilder()
+    builder.row(types.InlineKeyboardButton(text="🎥 720p", callback_data="dl_720p"), 
+                types.InlineKeyboardButton(text="📱 480p", callback_data="dl_480p"))
+    builder.row(types.InlineKeyboardButton(text="👨‍💻 Admin", url=ADMIN_URL),
+                types.InlineKeyboardButton(text="⬅️ Orqaga", callback_data="back_to_main"))
+    await c.message.edit_text("Video sifati:", reply_markup=builder.as_markup())
+
+@dp.callback_query(F.data == "back_to_main")
+async def back_main(c):
+    await c.message.edit_text("Nima yuklamoqchisiz?", reply_markup=get_main_menu())
+
+def download_media(url, mode):
+    file_name = f'res_{mode}_{int(time.time())}'
+    opts = {'outtmpl':f'{file_name}.%(ext)s','quiet':True,'no_warnings':True,'merge_output_format':'mp4'}
+    if 'mp3' in mode:
+        opts.update({'format':'bestaudio/best','postprocessors':[{'key':'FFmpegExtractAudio','preferredcodec':'mp3','preferredquality':'192'}]})
+    else: opts['format'] = 'bestvideo[height<=480]+bestaudio/best/best'
+    with YoutubeDL(opts) as ydl:
+        info = ydl.extract_info(url, download=True)
+        p = ydl.prepare_filename(info)
+        if 'mp3' in mode and not p.endswith('.mp3'): p = os.path.splitext(p)[0] + '.mp3'
+        return p, info.get('artist','Noma\'lum'), info.get('title','video')
 
 @dp.callback_query(F.data.startswith("dl_"))
 async def dl(c):
@@ -89,7 +114,10 @@ async def dl(c):
             await status.delete()
         else: raise Exception("Fayl topilmadi")
     except Exception as e:
-        await c.message.answer(f"❌ Xatolik: {str(e)[:100]}...")
+        err = str(e).lower()
+        if "confirm you're not a bot" in err or "login required" in err:
+            await c.message.answer("⚠️ Bu video uchun `cookies.txt` kerak. YouTube/Instagram bizning IP-ni bloklagan.")
+        else: await c.message.answer(f"❌ Xatolik: {str(e)[:50]}...")
         await status.delete()
     finally:
         if path and os.path.exists(path): os.remove(path)
