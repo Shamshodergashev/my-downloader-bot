@@ -2,3 +2,4 @@ aiogram>=3.0
 yt-dlp
 instaloader
 python-dotenv
+static-ffmpeg
