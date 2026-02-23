@@ -70,6 +70,18 @@ def run_health_check():
     except Exception as e:
         logger.error(f"Health check server xatosi: {e}")
 
+# --- KEEP ALIVE (Botni uxlatmaslik uchun!) ---
+def keep_alive():
+    """Har 10 daqiqada o'z-o'ziga ping yuboradi — Render uxlatmasligi uchun"""
+    render_url = os.environ.get("RENDER_EXTERNAL_URL", "")
+    while True:
+        time.sleep(600)  # 10 daqiqa
+        if render_url:
+            try:
+                requests.get(render_url, timeout=10)
+                logger.info("🏓 Keep-alive ping yuborildi")
+            except: pass
+
 # --- COOLDOWN ---
 COOLDOWN_SECONDS = 5
 user_links: dict[int, str] = {}
@@ -245,6 +257,7 @@ async def dl(c):
 
 async def main():
     threading.Thread(target=run_health_check, daemon=True).start()
+    threading.Thread(target=keep_alive, daemon=True).start()
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
