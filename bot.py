@@ -164,11 +164,13 @@ def download_media(url: str, mode: str) -> tuple[str, str, str]:
         'quiet': True,
         'no_warnings': True,
         'merge_output_format': 'mp4',
+        'nocheckcertificate': True,
+        'geo_bypass': True,
         'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
             'Accept-Language': 'en-US,en;q=0.9',
         },
-        'extractor_args': {'youtube': {'player_client': ['android', 'web']}},
+        'extractor_args': {'youtube': {'player_client': ['tv_embedded', 'mweb']}},
     }
     # 🍪 Cookies faylini ulash (YouTube blokini yechish uchun)
     if os.path.exists('cookies.txt'):
